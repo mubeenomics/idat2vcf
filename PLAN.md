@@ -118,4 +118,9 @@ Retain bcftools 1.20 and gtc2vcf 1.20-20240927 initially.
   conversion remain documented local integration checks.
 - README license/CI sections, VALIDATION.md review status, and this plan were
   updated accordingly.
-- The initial local commit is created next; GitHub publication stays deferred.
+- The initial local commit was created (`e433490`); GitHub publication stays
+  deferred until you request it.
+- Miniforge base upgraded to the versioned `condaforge/miniforge3:26.9.4-0`
+  after full candidate validation (checksums, plugins, 21 tests, real-data
+  baseline-matching conversions, and a real docker stop). bcftools stays 1.20;
+  runtime htslib is now 1.24. See `VALIDATION.md`.

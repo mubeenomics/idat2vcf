@@ -5,8 +5,9 @@
 # Requires the local resource TAR and BuildKit; see README.md for runtime mounts.
 # Bundled plugins are Linux x86_64 binaries built for bcftools 1.20.
 
-# Use Miniforge (conda-forge) as the pinned base image.
-FROM condaforge/miniforge3:25.3.1-0
+# Use Miniforge (conda-forge) as the pinned base image (Ubuntu 24.04 "Noble",
+# conda 26.9.4 / mamba 2.9.0 at the time of validation).
+FROM condaforge/miniforge3:26.9.4-0
 
 # Add metadata labels.
 LABEL author="Mubeen" \

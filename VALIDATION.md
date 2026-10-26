@@ -17,9 +17,11 @@ state; later sections retain the dated history of intermediate rounds.
   non-absolute rejection), completion-event capture for all three logger routing
   modes, and prompt SIGTERM interruption.
 - Final image `idat2vcf:local`:
-  `sha256:73869c78108921aec59b9564504cd4cdaee82774ddee9166f05d9a3989163919`
-  (4,264,156,177 bytes), including logshuru v2.0.0. Installed bcftools is 1.20
-  with HTSlib 1.22.1.
+  `sha256:4124fff72e24dc4921130244db8eb598c87371417a3dd1b8d20857ead465021b`
+  (4,358,787,444 bytes), including logshuru v2.0.0. Installed bcftools is
+  **1.20** (package build `h8b25389_1`) running against **htslib 1.24**, on the
+  pinned Miniforge base `condaforge/miniforge3:26.9.4-0` (Ubuntu 24.04.5 LTS,
+  conda 26.9.4, mamba 2.9.0). The pinned plugins remain gtc2vcf 1.20-20240927.
 - Real-data quiet and verbose runs with per-project logs
   (`<project>/logs/idat2vcf/`, explicit `HOST_LOG_DIR`) at
   `/tmp/opencode/idat2vcf-projectlogs-9n38dxfa` matched the established baseline:
@@ -206,6 +208,38 @@ or biological identity verification.
   Run-owned intermediates and locks were removed after success. External projects
   and logs are retained at the test root above; the detailed private report is
   `data/invocation-validation.json` and records the tested image ID.
+
+## Miniforge base upgrade (2026-10-26)
+
+- Rebuilt the image with the current versioned base
+  `condaforge/miniforge3:26.9.4-0` (built from `ubuntu:noble`, Ubuntu 24.04.5
+  LTS at validation time), replacing `condaforge/miniforge3:25.3.1-0`. The
+  resolved tag's amd64 manifest digest matches the digest currently referenced
+  by upstream `latest`.
+- Build-time checks passed: architecture test, bcftools=1.20 install, all seven
+  resource checksums, plugin discovery, and both plugin help outputs. The mamba
+  solver resolved bcftools 1.20 (build `h8b25389_1`, unchanged) with runtime
+  htslib 1.24, plus newer system libraries. Recorded versions inside the image:
+  `1.20+htslib-1.24`, conda 26.9.4, mamba 2.9.0.
+- All 21 unit tests passed. Plugin loading and help output verified in the
+  candidate container.
+- Real-data quiet and verbose runs with the candidate image (per-project logs,
+  explicit `HOST_LOG_DIR`) matched the established baseline: three sample IDs,
+  653,817 sorted/indexed records, identical canonical digest, 217-record indexed
+  regional query, baseline call rates, clean consoles, and full cleanup. A
+  quiet overwrite attempt was refused with the host log path reported. Private
+  report: `data/console-cleanup-validation.json` (test root
+  `/tmp/opencode/idat2vcf-projectlogs-ckuca4w6`).
+- A real `docker stop` during conversion exited 143 with the interruption
+  warning, retained intermediates, released the lock, and logged the failure
+  summary (test root `/tmp/opencode/idat2vcf-stop-ba8bw6lg`).
+- Adopted the pinned base in `idat2vcf.Dockerfile`. Rebuilding `idat2vcf:local`
+  from it reproduced the identical validated image ID
+  (`sha256:4124fff72e24dc4921130244db8eb598c87371417a3dd1b8d20857ead465021b`,
+  4,358,787,444 bytes, about 95 MB larger than the previous base). The
+  temporary candidate tag was removed. Conversion behavior is baseline-identical;
+  the benefit is a maintained toolchain (current Ubuntu base, conda/mamba, and
+  sharded repodata support) rather than conversion-output changes.
 
 ## Console-output cleanup (2026-10-26)
 
