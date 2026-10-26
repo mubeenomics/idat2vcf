@@ -27,5 +27,4 @@ build and real-data conversion remain local integration checks.
 
 ## Status
 
-See [VALIDATION.md](../VALIDATION.md) for the current validation status and
-[PLAN.md](../PLAN.md) for the implementation plan and publication steps.
+See [VALIDATION.md](../VALIDATION.md) for the current validation status.
