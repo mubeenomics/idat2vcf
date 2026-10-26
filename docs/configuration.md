@@ -14,12 +14,14 @@ Defaults may be overridden using Docker `-e` options:
 | `LOG_DIR` | `/container_logs` | Persistent logs; created if missing |
 | `IDAT2VCF_RESOURCES_DIR` | `/idat2vcf_resources` | Exact resource set used at build time |
 | `HOST_LOG_DIR` | Best-effort auto-detection | Host directory of the log mount, shown in status lines; pass it explicitly for NAS or nested mounts |
+| `EXPECTED_VCF_RECORDS` | `653817` | Validated record count for the pinned bundle; a deviation logs a `WARNING` for review |
 
 The documented commands pass `HOST_LOG_DIR` explicitly, which is reliable for
 every mount layout. The auto-detection reads the bind-mount source from
 `/proc/self/mountinfo` and shows the container path when the source cannot be
 resolved. Non-absolute `HOST_LOG_DIR` values are rejected before any files are
-created.
+created. Run logs are made group/other-readable (`0644`) so colleagues on
+shared storage can read them alongside the outputs they describe.
 
 ## Logging
 
@@ -29,7 +31,7 @@ No runtime download is required. Pipeline events include a millisecond timestamp
 severity, source file, function, and line number, for example:
 
 ```text
-2026-10-26 12:00:00.123 | PROCESS  | idat2vcf:main:327 - Starting IDAT to GTC conversion
+2026-10-26 12:00:00.123 | PROCESS  | idat2vcf:run_conversion:327 - Starting IDAT to GTC conversion
 ```
 
 Stage events use `PROCESS`, informational summaries use `INFO`, the working path

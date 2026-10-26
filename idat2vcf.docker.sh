@@ -97,6 +97,9 @@ if ! LOG_FILE=$(mktemp "${LOG_DIR}/${PROJECT_CODE}_$(date -u +%Y%m%dT%H%M%SZ)_XX
     printf 'FAILED: %s. Cannot create a run log in: %s\n' "$PROJECT_CODE" "$LOG_DIR" >&2
     exit 1
 fi
+# mktemp creates owner-only files; make the run log group/other-readable so
+# colleagues on shared storage can read it alongside the outputs it describes.
+chmod 644 -- "$LOG_FILE" || :
 
 # Show the host system log path in messages. An explicit HOST_LOG_DIR is the
 # reliable override and the documented setting; otherwise this is a best-effort
@@ -305,10 +308,22 @@ for file in "$FINAL_VCF_FILE" "${FINAL_VCF_FILE}.csi" "$EXTRA_INFO_FILE"; do
     [[ ! -e $file && ! -L $file ]] || fail "Refusing to replace existing output: $file"
 done
 
-# Check that the input directory contains IDAT files before creating intermediates.
+# Preflight: fail fast unless every *_Grn.idat has a same-directory matching
+# *_Red.idat and the counts agree, so mistakes surface before genotyping starts.
+grn_count=$(find "$IDAT_INPUT_DIR" -type f -name '*_Grn.idat' -printf '. ' | wc -w)
+red_count=$(find "$IDAT_INPUT_DIR" -type f -name '*_Red.idat' -printf '. ' | wc -w)
+(( grn_count > 0 )) || fail "No *_Grn.idat files found in $IDAT_INPUT_DIR"
+(( grn_count == red_count )) || \
+    fail "Unpaired IDAT files: $grn_count _Grn vs $red_count _Red in $IDAT_INPUT_DIR"
+while IFS= read -r grn_file; do
+    red_file=${grn_file%_Grn.idat}_Red.idat
+    [[ -f $red_file ]] || fail "Missing matching Red IDAT for: $grn_file"
+done < <(find "$IDAT_INPUT_DIR" -type f -name '*_Grn.idat')
 idat_count=$(find "$IDAT_INPUT_DIR" -type f -name '*.idat' -printf '. ' | wc -w)
-(( idat_count > 0 )) || fail "No IDAT files found in $IDAT_INPUT_DIR"
-log INFO "Found $idat_count IDAT files; both Red and Grn files are required for each sample"
+if (( idat_count != grn_count + red_count )); then
+    log WARNING "$((idat_count - grn_count - red_count)) .idat file(s) do not follow the _Grn/_Red naming and are ignored"
+fi
+log INFO "Found $grn_count paired IDAT samples ($((grn_count + red_count)) files)"
 
 # ==============================================================================
 # IDAT TO GTC CONVERSION
@@ -361,6 +376,13 @@ run_conversion() {
     # Capture the indexed record count instead of printing a bare number.
     indexed_records=$(bcftools index -n "$STAGED_VCF")
     log DEBUG "Indexed records: $indexed_records"
+    # Guard against a silently wrong reference/manifest pairing: the validated
+    # count for this exact bundle is 653,817. A deviation does not fail the run,
+    # but it is flagged loudly for review.
+    expected_records=${EXPECTED_VCF_RECORDS:-653817}
+    if (( indexed_records != expected_records )); then
+        log WARNING "Indexed record count $indexed_records differs from the validated count $expected_records; verify the reference/manifest pairing in this log"
+    fi
     # Publish only validated files. Existing outputs are checked while holding the lock.
     mv -- "$STAGED_EXTRA" "$EXTRA_INFO_FILE"
     mv -- "${STAGED_VCF}.csi" "${FINAL_VCF_FILE}.csi"

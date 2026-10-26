@@ -172,3 +172,10 @@ automatically removed. Sample names follow the upstream default (GTC filenames).
 No additional sample/variant QC filtering is applied. Genotype correctness and
 sample identity should be checked with representative inputs before production
 use.
+
+The pipeline preflights the input pairing: every `*_Grn.idat` must have a
+same-directory `*_Red.idat` match, and the counts must agree, so mistakes fail
+before genotyping starts. Files not following the `_Grn/_Red` naming are warned
+about and ignored. After conversion, the indexed record count is compared with
+the validated count for the pinned bundle (653,817); a deviation logs a `WARNING`
+suggesting a reference/manifest pairing review.

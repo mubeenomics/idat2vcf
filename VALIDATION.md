@@ -6,11 +6,18 @@ Validated locally on 2026-10-26.
 
 ## Validated image
 
-- `idat2vcf:local` `sha256:4124fff72e24dc4921130244db8eb598c87371417a3dd1b8d20857ead465021b`
-  (4,358,787,444 bytes), built from the pinned base
+- `idat2vcf:local` `sha256:276eacf8e03821a024329ca89f272a9567f532561cbfa55f452fb008471c2a5f`
+  (4,358,789,542 bytes), built from the pinned base
   `condaforge/miniforge3:26.9.4-0` (Ubuntu 24.04.5 LTS), with bcftools **1.20**
-  (package build `h8b25389_1`), runtime htslib **1.24**, and the pinned
-  gtc2vcf **1.20-20240927** plugins. Rebuilding reproduces this image ID.
+  (package build `h8b25389_1`), runtime htslib **1.24** (pinned alongside
+  bcftools so the tested pairing cannot silently drift), and the pinned
+  gtc2vcf **1.20-20240927** plugins.
+
+Rebuilding this Dockerfile at validation time reproduced the previously
+validated image ID exactly, because the same resolved package set was cached.
+This is not a general reproducibility guarantee: the transitive conda
+dependency set is not locked, so future rebuilds are not guaranteed to be
+bit-identical (see [docs/resources.md](docs/resources.md)).
 
 ## Resource verification
 
@@ -27,16 +34,22 @@ Validated locally on 2026-10-26.
 
 ## Automated checks
 
-- Bash syntax checks and ShellCheck for the pipeline, the test fixture, and the
-  bundled first-party logger (sourced-library analysis enabled).
-- **21** standard-library unit tests: conversion-stage failures, failed-run
+- Bash syntax checks and ShellCheck for the pipeline, the test fixture, the
+  smoke-test script, and the bundled first-party logger (sourced-library
+  analysis enabled).
+- **26** standard-library unit tests: conversion-stage failures, failed-run
   intermediate preservation, cleanup, project locks, output protection,
   quiet/verbose console modes, logger routing and failure semantics, prompt
-  termination, and argument/help validation.
+  termination, Grn/Red pairing preflight, record-count deviation warnings, run
+  log readability, and argument/help validation.
+- A real-bcftools smoke test (`tests/smoke_bcftools.sh`) exercises the actual
+  `sort | norm -c x | --write-index` stage on a tiny reference and VCF; it runs
+  in CI and locally. It does not exercise the bundled plugins; those are
+  covered by the pinned-build integration validation.
 - The bundled logshuru release script and license match the recorded v2.0.0
   checksums; verified locally and at image build time.
-- [CI](.github/workflows/checks.yml) runs the same checks on every push and
-  pull request.
+- [CI](.github/workflows/checks.yml) runs all of these on every push and pull
+  request, with a read-only `permissions` block and a SHA-pinned checkout.
 
 ## Docker integration checks
 
@@ -58,7 +71,11 @@ were converted with the actual container pipeline:
   and locks.
 - The VCF contains exactly the three expected sample IDs and **653,817**
   coordinate-sorted records; the full decoded stream matches the CSI count, and
-  an index-backed query of `chr1:1000000-2000000` returned 217 records.
+  an index-backed query of `chr1:1000000-2000000` returned 217 records. The
+  record count matches the bundle's validated value, so the deviation guard
+  stays silent.
+- Input preflight confirms the Grn/Red pairing (three paired samples, six
+  files) and run logs are written group/other-readable.
 - GTC call rates ranged from **99.28% to 99.91%**. There are 650,108 records
   with a GT FORMAT field (the remainder omit GT for intensity-only probes);
   each sample has fully called genotypes at over 98% of GT records.

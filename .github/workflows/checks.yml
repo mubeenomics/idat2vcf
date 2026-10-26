@@ -4,12 +4,15 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Bash syntax check
         run: |
@@ -28,6 +31,21 @@ jobs:
       - name: Standard-library unit tests
         run: |
           python3 -m unittest discover -s tests -v
+
+  smoke-bcftools:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install bcftools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bcftools
+
+      - name: Real-bcftools sort|norm|index flag smoke test
+        run: |
+          tests/smoke_bcftools.sh
 
 # The Docker build and real-data conversion require the local resource archive
 # (idat2vcf.grch38.tar.gz) and are documented integration checks, not CI checks.

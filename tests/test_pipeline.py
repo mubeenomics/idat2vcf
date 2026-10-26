@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -42,12 +43,17 @@ class PipelineTests(unittest.TestCase):
             "IDAT2VCF_RESOURCES_DIR": str(resources),
             "MOCK_FAIL": "",
             "MOCK_LOG_FAILURE_FLAG": "",
+            "MOCK_STAGE_SLEEP": "",
+            "HOST_LOG_DIR": "",
+            "EXPECTED_VCF_RECORDS": "1",
             "LOG_LEVEL": "PROCESS",
             "LOGSHURU_OUTPUT": "stderr",
             "LOGSHURU_FORMAT": "text",
             "LOGSHURU_COLOR": "never",
             "LOGSHURU_TZ": "UTC",
         }
+        self.host_tee = shutil.which("tee")
+        self.host_date = shutil.which("date")
 
     def run_pipeline(self, *args):
         return subprocess.run(
@@ -203,16 +209,18 @@ class PipelineTests(unittest.TestCase):
 
     def test_termination_prompts_cleanup_and_kills_pipeline(self):
         self.env["MOCK_STAGE_SLEEP"] = "8"
-        started = time.monotonic()
         process = subprocess.Popen(
             ["bash", str(ROOT / "idat2vcf.docker.sh"), "PROJECT"],
             env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
         time.sleep(1.5)
         # Mirror docker stop semantics: SIGTERM reaches only the main process.
+        # Time the kill from the signal, not from process start, so a slow
+        # startup on a loaded machine cannot produce a false failure.
+        sent = time.monotonic()
         process.terminate()
         out, err = process.communicate(timeout=30)
-        elapsed = time.monotonic() - started
+        elapsed = time.monotonic() - sent
         self.assertLess(elapsed, 6, "Termination did not interrupt the pipeline promptly")
         self.assertEqual(process.returncode, 143, out + err)
         self.assertTrue(err.startswith("FAILED: PROJECT (exit 143). Log: "), err)
@@ -226,7 +234,7 @@ class PipelineTests(unittest.TestCase):
 
     def install_failing_tee(self):
         tee = self.root / "bin/tee"
-        tee.write_text('#!/usr/bin/env bash\n/usr/bin/tee "$@"\nexit 7\n')
+        tee.write_text(f'#!/usr/bin/env bash\n{self.host_tee} "$@"\nexit 7\n')
         tee.chmod(0o755)
 
     def test_cleanup_failure_does_not_mask_tool_error(self):
@@ -290,8 +298,8 @@ class PipelineTests(unittest.TestCase):
         date = self.root / "bin/date"
         date.write_text(
             '#!/usr/bin/env bash\n'
-            'if [[ -f "$MOCK_LOG_FAILURE_FLAG" ]]; then exit 73; fi\n'
-            'exec /usr/bin/date "$@"\n'
+            f'if [[ -f "$MOCK_LOG_FAILURE_FLAG" ]]; then exit 73; fi\n'
+            f'exec {self.host_date} "$@"\n'
         )
         date.chmod(0o755)
         result = self.run_pipeline("PROJECT")
@@ -345,9 +353,55 @@ class PipelineTests(unittest.TestCase):
             path.unlink()
         result = self.run_pipeline("PROJECT")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("No IDAT files", next(self.logs.glob("*.log")).read_text())
+        self.assertIn("No *_Grn.idat files", next(self.logs.glob("*.log")).read_text())
         self.assertIn("FAILED: PROJECT", result.stderr)
         self.assert_unlocked()
+
+    def test_unpaired_idats_fail_before_conversion(self):
+        (self.inputs / "sample_Red.idat").unlink()
+        result = self.run_pipeline("PROJECT")
+        self.assertNotEqual(result.returncode, 0)
+        text = next(self.logs.glob("*.log")).read_text()
+        self.assertIn("Unpaired IDAT files: 1 _Grn vs 0 _Red", text)
+        self.assertIn("FAILED: PROJECT", result.stderr)
+        self.assert_unlocked()
+        self.assertEqual(list(self.data.glob(".PROJECT.idat2vcf.*")), [])
+
+    def test_mismatched_names_with_equal_counts_fail_before_conversion(self):
+        (self.inputs / "sample_Red.idat").rename(self.inputs / "other_Red.idat")
+        result = self.run_pipeline("PROJECT")
+        self.assertNotEqual(result.returncode, 0)
+        text = next(self.logs.glob("*.log")).read_text()
+        self.assertIn("Missing matching Red IDAT for:", text)
+        self.assertIn("sample_Grn.idat", text)
+        self.assert_unlocked()
+
+    def test_extra_nonstandard_idat_files_warn_but_convert(self):
+        (self.inputs / "legacy.idat").write_text("test input\n")
+        result = self.run_pipeline("PROJECT")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        text = next(self.logs.glob("*.log")).read_text()
+        self.assertIn("1 .idat file(s) do not follow the _Grn/_Red naming", text)
+        self.assertIn("| WARNING", text)
+        self.assertIn("Found 1 paired IDAT samples (2 files)", text)
+        self.assert_unlocked()
+
+    def test_record_count_deviation_warns_without_failing(self):
+        self.env["EXPECTED_VCF_RECORDS"] = "2"
+        result = self.run_pipeline("PROJECT")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        text = next(self.logs.glob("*.log")).read_text()
+        self.assertIn(
+            "Indexed record count 1 differs from the validated count 2", text
+        )
+        self.assertIn("| WARNING", text)
+        self.assert_unlocked()
+
+    def test_run_log_is_group_and_other_readable(self):
+        result = self.run_pipeline("PROJECT")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        mode = stat.S_IMODE(next(self.logs.glob("*.log")).stat().st_mode)
+        self.assertEqual(mode, 0o644)
 
 
 if __name__ == "__main__":

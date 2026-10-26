@@ -1,14 +1,14 @@
 # External resource bundles and unpacked reference / array resources
-*.tar
-*.tar.gz
-*.tgz
-*.zip
+/*.tar
+/*.tar.gz
+/*.tgz
+/*.zip
 *.fna
 *.fasta
 *.fa
 *.fai
 *.bpm
-*.csv
+/*.csv
 *.egt
 *.so
 
@@ -25,7 +25,7 @@
 *.csi
 *.tbi
 *.extra.tsv
-*.log
+/*.log
 .*.idat2vcf.*
 
 # Editor / operating system files

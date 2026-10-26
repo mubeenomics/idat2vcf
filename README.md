@@ -40,6 +40,9 @@ The build installs bcftools 1.20 with the pinned plugins, verifies every
 resource checksum, and checks that both plugins load. The archive is
 build-mounted and is not retained in the image.
 
+> **Note:** the built image embeds the Illumina manifests, cluster file, and the
+> reference genome. Keep the image private; do not push it to a public registry.
+
 ## Quick start
 
 From the project directory containing `idat_files/` (anywhere on the Docker

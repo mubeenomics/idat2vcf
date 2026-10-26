@@ -4,6 +4,8 @@
 # Build: docker build --platform linux/amd64 -f idat2vcf.Dockerfile -t idat2vcf:local .
 # Requires the local resource TAR and BuildKit; see README.md for runtime mounts.
 # Bundled plugins are Linux x86_64 binaries built for bcftools 1.20.
+# NOTE: the built image embeds the Illumina manifests, cluster file, and the
+# reference genome. Keep it private; do not push it to a public registry.
 
 # Use Miniforge (conda-forge) as the pinned base image (Ubuntu 24.04 "Noble",
 # conda 26.9.4 / mamba 2.9.0 at the time of validation).
@@ -12,13 +14,21 @@ FROM condaforge/miniforge3:26.9.4-0
 # Add metadata labels.
 LABEL author="Mubeen" \
       description="Convert Infinium GSA v3.0 IDAT files to indexed GRCh38 VCF" \
-      version="1.0"
+      version="1.0" \
+      org.opencontainers.image.title="idat2vcf" \
+      org.opencontainers.image.description="Convert Infinium GSA v3.0 IDAT files to an indexed GRCh38 VCF using the bcftools idat2gtc/gtc2vcf plugins" \
+      org.opencontainers.image.version="1.0" \
+      org.opencontainers.image.source="https://github.com/mubeenomics/idat2vcf" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.authors="Mohammed Mubeen Shaikh"
 
 # Check the supported architecture, install the matching bcftools version using
 # strict conda-forge/bioconda priority, and clean package caches in the same layer.
+# htslib is pinned to the exact runtime version used by the v1.0 validation, so
+# dependency resolution cannot silently change the tested pairing.
 RUN test "$(uname -m)" = x86_64 && \
     mamba install -n base --override-channels -c conda-forge -c bioconda \
-        --strict-channel-priority bcftools=1.20 -y && \
+        --strict-channel-priority bcftools=1.20 htslib=1.24 -y && \
     conda clean -afy
 
 # Give bcftools an explicit plugin search directory.
@@ -40,6 +50,7 @@ RUN --mount=type=bind,source=idat2vcf.grch38.tar.gz,target=/tmp/resources.tar.gz
     sha256sum -c resources.sha256 && \
     mkdir -p "$BCFTOOLS_PLUGINS" && \
     mv gtc2vcf.so idat2gtc.so "$BCFTOOLS_PLUGINS/" && \
+    chmod -R a+rX /idat2vcf_resources "$BCFTOOLS_PLUGINS" && \
     bcftools plugin -l | grep -Fx idat2gtc && \
     bcftools plugin -l | grep -Fx gtc2vcf && \
     (bcftools +idat2gtc -h 2>&1 || true) | grep -F 'Usage: bcftools +idat2gtc' && \

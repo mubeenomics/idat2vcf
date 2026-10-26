@@ -90,6 +90,9 @@ Compression settings and TAR timestamps can change the archive checksum, so the
 build validates **unpacked file checksums**. Its build context explicitly includes
 this archive, while `.gitignore` keeps it out of Git history.
 
+The built image embeds these resources in its layers. Keep the image private;
+do not push it to a public registry.
+
 The base image and bcftools version are pinned, but the complete transitive conda
 dependency set is not locked. This setup preserves the verified resource/plugin
 pairing rather than guaranteeing bit-identical container rebuilds indefinitely.
