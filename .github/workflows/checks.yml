@@ -1,0 +1,33 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Bash syntax check
+        run: |
+          bash -n idat2vcf.docker.sh
+          bash -n tests/fixtures/bcftools
+
+      - name: ShellCheck (with sourced-library analysis)
+        run: |
+          shellcheck -x idat2vcf.docker.sh tests/fixtures/bcftools lib/logshuru/logshuru.sh
+
+      - name: Verify bundled logshuru release checksums
+        run: |
+          cd lib/logshuru
+          sha256sum -c SHA256SUMS
+
+      - name: Standard-library unit tests
+        run: |
+          python3 -m unittest discover -s tests -v
+
+# The Docker build and real-data conversion require the local resource archive
+# (idat2vcf.grch38.tar.gz) and are documented integration checks, not CI checks.

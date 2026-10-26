@@ -1,0 +1,36 @@
+# External resource bundles and unpacked reference / array resources
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.fna
+*.fasta
+*.fa
+*.fai
+*.bpm
+*.csv
+*.egt
+*.so
+
+# Genomic inputs and generated results
+/data/
+/idat_files/
+/gtc_files/
+/container_logs/
+*.idat
+*.gtc
+*.vcf
+*.vcf.gz
+*.bcf
+*.csi
+*.tbi
+*.extra.tsv
+*.log
+.*.idat2vcf.*
+
+# Editor / operating system files
+*~
+*.swp
+.DS_Store
+__pycache__/
+*.py[cod]
