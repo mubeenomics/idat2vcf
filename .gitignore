@@ -34,3 +34,6 @@
 .DS_Store
 __pycache__/
 *.py[cod]
+
+# Local planning and build notes (kept on disk, excluded from the repository)
+PLAN.md
