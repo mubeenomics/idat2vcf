@@ -14,7 +14,7 @@ Defaults may be overridden using Docker `-e` options:
 | `LOG_DIR` | `/container_logs` | Persistent logs; created if missing |
 | `IDAT2VCF_RESOURCES_DIR` | `/idat2vcf_resources` | Exact resource set used at build time |
 | `HOST_LOG_DIR` | Best-effort auto-detection | Host directory of the log mount, shown in status lines; pass it explicitly for NAS or nested mounts |
-| `EXPECTED_VCF_RECORDS` | `653817` | Validated record count for the pinned bundle; a deviation logs a `WARNING`, a console `NOTE`, and, with `EXPECTED_VCF_RECORDS_STRICT` set, fails the run before publication |
+| `EXPECTED_VCF_RECORDS` | `653817` | Validated record count for the pinned bundle; a deviation logs a `WARNING` and a console `NOTE`, and, with `EXPECTED_VCF_RECORDS_STRICT` set, fails the run before publication with the dedicated status **65** (`EX_DATAERR`). Validated at startup as a non-negative integer |
 
 The documented commands pass `HOST_LOG_DIR` explicitly, which is reliable for
 every mount layout. The auto-detection reads the bind-mount source from

@@ -180,4 +180,6 @@ plugin does not recurse into subdirectories. Files not following the `_Grn/_Red`
 naming are warned about (in the log and as a console `NOTE`) and ignored. After
 conversion, the indexed record count is compared with the validated count for
 the pinned bundle (653,817); a deviation logs a `WARNING` and a console `NOTE`,
-and with `EXPECTED_VCF_RECORDS_STRICT` set it fails the run before publication.
+and with `EXPECTED_VCF_RECORDS_STRICT` set it fails the run before publication
+with the dedicated exit status **65** (`EX_DATAERR`), distinguishable from a
+crash.

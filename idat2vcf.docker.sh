@@ -88,6 +88,15 @@ if [[ -n ${HOST_LOG_DIR:-} && $HOST_LOG_DIR != /* ]]; then
     exit 1
 fi
 
+# Validate the record-count guard inputs before any work is done, so a typo
+# does not waste a full conversion run.
+EXPECTED_RECORDS_COUNT=${EXPECTED_VCF_RECORDS:-653817}
+if [[ ! $EXPECTED_RECORDS_COUNT =~ ^[0-9]+$ ]]; then
+    printf 'FAILED: %s. EXPECTED_VCF_RECORDS must be a non-negative integer: %s\n' \
+        "$PROJECT_CODE" "$EXPECTED_RECORDS_COUNT" >&2
+    exit 1
+fi
+
 # Create the directory before the first message and use a unique log per run.
 if ! mkdir -p -- "$LOG_DIR"; then
     printf 'FAILED: %s. Cannot create log directory: %s\n' "$PROJECT_CODE" "$LOG_DIR" >&2
@@ -384,17 +393,15 @@ run_conversion() {
     # count for this exact bundle is 653,817. A deviation is flagged on the
     # console as well as in the log (it would otherwise be invisible in quiet
     # mode); with EXPECTED_VCF_RECORDS_STRICT set it fails the run before
-    # publication.
-    expected_records=${EXPECTED_VCF_RECORDS:-653817}
-    if [[ ! $expected_records =~ ^[0-9]+$ ]]; then
-        fail "EXPECTED_VCF_RECORDS must be a non-negative integer: $expected_records"
-    fi
-    if (( indexed_records != expected_records )); then
-        deviation_note="Indexed record count $indexed_records differs from the validated count $expected_records; verify the reference/manifest pairing"
+    # publication with the dedicated status 65 (EX_DATAERR), so calling
+    # scripts can distinguish a count mismatch from a crash.
+    if (( indexed_records != EXPECTED_RECORDS_COUNT )); then
+        deviation_note="Indexed record count $indexed_records differs from the validated count $EXPECTED_RECORDS_COUNT; verify the reference/manifest pairing"
         log WARNING "$deviation_note; see this log for details" || :
         printf 'NOTE: %s. See: %s\n' "$deviation_note" "$LOG_DISPLAY_PATH" >&"$CONSOLE_ERR" || :
         if [[ -n ${EXPECTED_VCF_RECORDS_STRICT:-} ]]; then
-            fail "$deviation_note (EXPECTED_VCF_RECORDS_STRICT is set)"
+            log ERROR "$deviation_note (EXPECTED_VCF_RECORDS_STRICT is set)" || :
+            exit 65
         fi
     fi
     # Publish only validated files. Existing outputs are checked while holding the lock.

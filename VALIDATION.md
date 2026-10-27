@@ -7,8 +7,8 @@ hardening changes recorded here.
 
 ## Validated image
 
-- `idat2vcf:local` `sha256:273ab3a66f0118d415e2ff83df58fe41d6caccfbc064deffb31f79f028dc4008`
-  (4,358,790,391 bytes), built from the pinned base
+- `idat2vcf:local` `sha256:39206c05835e2bf61b9a5cb65f7e84bfbd6195e5b37842997d59dacea55e6fa0`
+  (4,358,790,728 bytes, image labels `1.0.2`), built from the pinned base
   `condaforge/miniforge3:26.9.4-0` (Ubuntu 24.04.5 LTS), with bcftools **1.20**
   (package build `h8b25389_1`), runtime htslib **1.24** (pinned alongside
   bcftools so the tested pairing cannot silently drift), and the pinned
@@ -91,7 +91,9 @@ were converted with the actual container pipeline:
   the lock released.
 - **Deviation visibility:** an induced record-count deviation is reported both
   in the log and as a console `NOTE` in quiet mode; with
-  `EXPECTED_VCF_RECORDS_STRICT` set it fails the run before publication.
+  `EXPECTED_VCF_RECORDS_STRICT` set it fails the run before publication with
+  the dedicated exit status 65. A non-numeric `EXPECTED_VCF_RECORDS` is
+  rejected at startup before any files are created.
 - **Interruption:** `docker stop` during conversion exited 143, killed the tool
   processes, retained intermediates, released the lock, and logged the
   interruption.

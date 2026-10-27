@@ -14,10 +14,10 @@ FROM condaforge/miniforge3:26.9.4-0
 # Add metadata labels.
 LABEL author="Mubeen" \
       description="Convert Infinium GSA v3.0 IDAT files to indexed GRCh38 VCF" \
-      version="1.0" \
+      version="1.0.2" \
       org.opencontainers.image.title="idat2vcf" \
       org.opencontainers.image.description="Convert Infinium GSA v3.0 IDAT files to an indexed GRCh38 VCF using the bcftools idat2gtc/gtc2vcf plugins" \
-      org.opencontainers.image.version="1.0" \
+      org.opencontainers.image.version="1.0.2" \
       org.opencontainers.image.source="https://github.com/mubeenomics/idat2vcf" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.authors="Mohammed Mubeen Shaikh"

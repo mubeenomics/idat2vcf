@@ -410,23 +410,24 @@ class PipelineTests(unittest.TestCase):
         self.env["EXPECTED_VCF_RECORDS"] = "2"
         self.env["EXPECTED_VCF_RECORDS_STRICT"] = "1"
         result = self.run_pipeline("PROJECT")
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        # 65 = EX_DATAERR, distinguishing a count mismatch from other failures.
+        self.assertEqual(result.returncode, 65, result.stdout + result.stderr)
         self.assertEqual(result.stdout, "")
-        self.assertIn("FAILED: PROJECT (exit 1). Log:", result.stderr)
+        self.assertIn("FAILED: PROJECT (exit 65). Log:", result.stderr)
         text = next(self.logs.glob("*.log")).read_text()
         self.assertIn("differs from the validated count 2", text)
         self.assertIn("EXPECTED_VCF_RECORDS_STRICT is set", text)
         self.assertFalse((self.data / "PROJECT.vcf.gz").exists())
         self.assert_unlocked()
 
-    def test_invalid_expected_record_count_fails_before_publication(self):
+    def test_invalid_expected_record_count_rejected_at_startup(self):
         self.env["EXPECTED_VCF_RECORDS"] = "many"
         result = self.run_pipeline("PROJECT")
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn("must be a non-negative integer", next(self.logs.glob("*.log")).read_text())
-        self.assertIn("FAILED: PROJECT (exit 1). Log:", result.stderr)
-        self.assertFalse((self.data / "PROJECT.vcf.gz").exists())
-        self.assert_unlocked()
+        self.assertEqual(result.stdout, "")
+        self.assertIn("must be a non-negative integer", result.stderr)
+        # Rejected before any work: no log directory is created.
+        self.assertFalse(self.logs.exists())
 
     def test_nested_idat_files_fail_preflight_like_the_plugin(self):
         nested = self.inputs / "sub"
