@@ -17,6 +17,7 @@
 /idat_files/
 /gtc_files/
 /container_logs/
+/logs/
 *.idat
 *.gtc
 *.vcf

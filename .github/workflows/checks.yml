@@ -21,7 +21,7 @@ jobs:
 
       - name: ShellCheck (with sourced-library analysis)
         run: |
-          shellcheck -x idat2vcf.docker.sh tests/fixtures/bcftools lib/logshuru/logshuru.sh
+          shellcheck -x idat2vcf.docker.sh tests/fixtures/bcftools tests/smoke_bcftools.sh lib/logshuru/logshuru.sh
 
       - name: Verify bundled logshuru release checksums
         run: |

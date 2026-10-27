@@ -1,13 +1,14 @@
 # Validation status
 
-Validated locally on 2026-10-26.
+Validated locally on 2026-10-26 and revalidated the same day after the
+hardening changes recorded here.
 
 [Development checks](docs/development.md) · [Quick start](README.md)
 
 ## Validated image
 
-- `idat2vcf:local` `sha256:276eacf8e03821a024329ca89f272a9567f532561cbfa55f452fb008471c2a5f`
-  (4,358,789,542 bytes), built from the pinned base
+- `idat2vcf:local` `sha256:273ab3a66f0118d415e2ff83df58fe41d6caccfbc064deffb31f79f028dc4008`
+  (4,358,790,391 bytes), built from the pinned base
   `condaforge/miniforge3:26.9.4-0` (Ubuntu 24.04.5 LTS), with bcftools **1.20**
   (package build `h8b25389_1`), runtime htslib **1.24** (pinned alongside
   bcftools so the tested pairing cannot silently drift), and the pinned
@@ -37,15 +38,18 @@ bit-identical (see [docs/resources.md](docs/resources.md)).
 - Bash syntax checks and ShellCheck for the pipeline, the test fixture, the
   smoke-test script, and the bundled first-party logger (sourced-library
   analysis enabled).
-- **26** standard-library unit tests: conversion-stage failures, failed-run
+- **29** standard-library unit tests: conversion-stage failures, failed-run
   intermediate preservation, cleanup, project locks, output protection,
   quiet/verbose console modes, logger routing and failure semantics, prompt
-  termination, Grn/Red pairing preflight, record-count deviation warnings, run
-  log readability, and argument/help validation.
+  termination, Grn/Red pairing preflight (including a nested-directory layout,
+  which the upstream plugin does not support), record-count deviation
+  warnings/strict mode/invalid override handling, run log readability, and
+  argument/help validation.
 - A real-bcftools smoke test (`tests/smoke_bcftools.sh`) exercises the actual
-  `sort | norm -c x | --write-index` stage on a tiny reference and VCF; it runs
-  in CI and locally. It does not exercise the bundled plugins; those are
-  covered by the pinned-build integration validation.
+  `sort | norm -c x | --write-index` stage on a tiny reference and VCF. It is a
+  flag-level check only: in CI it runs with the runner's distribution bcftools
+  (1.19 at the time of writing), not the pinned 1.20 build. The bundled plugins
+  and the pinned build are covered by the local integration validation.
 - The bundled logshuru release script and license match the recorded v2.0.0
   checksums; verified locally and at image build time.
 - [CI](.github/workflows/checks.yml) runs all of these on every push and pull
@@ -85,6 +89,9 @@ were converted with the actual container pipeline:
   records with an identical digest after consistent sample-column ordering. A
   same-prefix rerun was refused with existing output checksums unchanged and
   the lock released.
+- **Deviation visibility:** an induced record-count deviation is reported both
+  in the log and as a console `NOTE` in quiet mode; with
+  `EXPECTED_VCF_RECORDS_STRICT` set it fails the run before publication.
 - **Interruption:** `docker stop` during conversion exited 143, killed the tool
   processes, retained intermediates, released the lock, and logged the
   interruption.

@@ -395,6 +395,51 @@ class PipelineTests(unittest.TestCase):
             "Indexed record count 1 differs from the validated count 2", text
         )
         self.assertIn("| WARNING", text)
+        self.assertTrue(result.stdout.startswith("SUCCESS: PROJECT completed."))
+        # The deviation must be visible in quiet mode, not only in the log.
+        self.assertTrue(
+            result.stderr.startswith(
+                "NOTE: Indexed record count 1 differs from the validated count 2;"
+            ),
+            result.stderr,
+        )
+        self.assertTrue(result.stderr.endswith(".log\n"))
+        self.assert_unlocked()
+
+    def test_record_count_deviation_strict_mode_fails_before_publication(self):
+        self.env["EXPECTED_VCF_RECORDS"] = "2"
+        self.env["EXPECTED_VCF_RECORDS_STRICT"] = "1"
+        result = self.run_pipeline("PROJECT")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("FAILED: PROJECT (exit 1). Log:", result.stderr)
+        text = next(self.logs.glob("*.log")).read_text()
+        self.assertIn("differs from the validated count 2", text)
+        self.assertIn("EXPECTED_VCF_RECORDS_STRICT is set", text)
+        self.assertFalse((self.data / "PROJECT.vcf.gz").exists())
+        self.assert_unlocked()
+
+    def test_invalid_expected_record_count_fails_before_publication(self):
+        self.env["EXPECTED_VCF_RECORDS"] = "many"
+        result = self.run_pipeline("PROJECT")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("must be a non-negative integer", next(self.logs.glob("*.log")).read_text())
+        self.assertIn("FAILED: PROJECT (exit 1). Log:", result.stderr)
+        self.assertFalse((self.data / "PROJECT.vcf.gz").exists())
+        self.assert_unlocked()
+
+    def test_nested_idat_files_fail_preflight_like_the_plugin(self):
+        nested = self.inputs / "sub"
+        nested.mkdir()
+        for channel in ("Grn", "Red"):
+            shutil.copyfile(self.inputs / f"sample_{channel}.idat", nested / f"sample_{channel}.idat")
+        for path in self.inputs.glob("*.idat"):
+            path.unlink()
+        result = self.run_pipeline("PROJECT")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "No *_Grn.idat files found", next(self.logs.glob("*.log")).read_text()
+        )
         self.assert_unlocked()
 
     def test_run_log_is_group_and_other_readable(self):

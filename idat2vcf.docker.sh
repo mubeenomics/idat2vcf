@@ -308,20 +308,24 @@ for file in "$FINAL_VCF_FILE" "${FINAL_VCF_FILE}.csi" "$EXTRA_INFO_FILE"; do
     [[ ! -e $file && ! -L $file ]] || fail "Refusing to replace existing output: $file"
 done
 
-# Preflight: fail fast unless every *_Grn.idat has a same-directory matching
-# *_Red.idat and the counts agree, so mistakes surface before genotyping starts.
-grn_count=$(find "$IDAT_INPUT_DIR" -type f -name '*_Grn.idat' -printf '. ' | wc -w)
-red_count=$(find "$IDAT_INPUT_DIR" -type f -name '*_Red.idat' -printf '. ' | wc -w)
+# Preflight: fail fast unless every top-level *_Grn.idat has a same-directory
+# matching *_Red.idat and the counts agree, so mistakes surface before
+# genotyping starts. The search is top-level only because the upstream plugin
+# does not recurse into subdirectories.
+grn_count=$(find "$IDAT_INPUT_DIR" -maxdepth 1 -type f -name '*_Grn.idat' -printf '. ' | wc -w)
+red_count=$(find "$IDAT_INPUT_DIR" -maxdepth 1 -type f -name '*_Red.idat' -printf '. ' | wc -w)
 (( grn_count > 0 )) || fail "No *_Grn.idat files found in $IDAT_INPUT_DIR"
 (( grn_count == red_count )) || \
     fail "Unpaired IDAT files: $grn_count _Grn vs $red_count _Red in $IDAT_INPUT_DIR"
 while IFS= read -r grn_file; do
     red_file=${grn_file%_Grn.idat}_Red.idat
     [[ -f $red_file ]] || fail "Missing matching Red IDAT for: $grn_file"
-done < <(find "$IDAT_INPUT_DIR" -type f -name '*_Grn.idat')
-idat_count=$(find "$IDAT_INPUT_DIR" -type f -name '*.idat' -printf '. ' | wc -w)
+done < <(find "$IDAT_INPUT_DIR" -maxdepth 1 -type f -name '*_Grn.idat')
+idat_count=$(find "$IDAT_INPUT_DIR" -maxdepth 1 -type f -name '*.idat' -printf '. ' | wc -w)
 if (( idat_count != grn_count + red_count )); then
-    log WARNING "$((idat_count - grn_count - red_count)) .idat file(s) do not follow the _Grn/_Red naming and are ignored"
+    naming_note="$((idat_count - grn_count - red_count)) .idat file(s) do not follow the _Grn/_Red naming and are ignored"
+    log WARNING "$naming_note" || :
+    printf 'NOTE: %s. See: %s\n' "$naming_note" "$LOG_DISPLAY_PATH" >&"$CONSOLE_ERR" || :
 fi
 log INFO "Found $grn_count paired IDAT samples ($((grn_count + red_count)) files)"
 
@@ -377,11 +381,21 @@ run_conversion() {
     indexed_records=$(bcftools index -n "$STAGED_VCF")
     log DEBUG "Indexed records: $indexed_records"
     # Guard against a silently wrong reference/manifest pairing: the validated
-    # count for this exact bundle is 653,817. A deviation does not fail the run,
-    # but it is flagged loudly for review.
+    # count for this exact bundle is 653,817. A deviation is flagged on the
+    # console as well as in the log (it would otherwise be invisible in quiet
+    # mode); with EXPECTED_VCF_RECORDS_STRICT set it fails the run before
+    # publication.
     expected_records=${EXPECTED_VCF_RECORDS:-653817}
+    if [[ ! $expected_records =~ ^[0-9]+$ ]]; then
+        fail "EXPECTED_VCF_RECORDS must be a non-negative integer: $expected_records"
+    fi
     if (( indexed_records != expected_records )); then
-        log WARNING "Indexed record count $indexed_records differs from the validated count $expected_records; verify the reference/manifest pairing in this log"
+        deviation_note="Indexed record count $indexed_records differs from the validated count $expected_records; verify the reference/manifest pairing"
+        log WARNING "$deviation_note; see this log for details" || :
+        printf 'NOTE: %s. See: %s\n' "$deviation_note" "$LOG_DISPLAY_PATH" >&"$CONSOLE_ERR" || :
+        if [[ -n ${EXPECTED_VCF_RECORDS_STRICT:-} ]]; then
+            fail "$deviation_note (EXPECTED_VCF_RECORDS_STRICT is set)"
+        fi
     fi
     # Publish only validated files. Existing outputs are checked while holding the lock.
     mv -- "$STAGED_EXTRA" "$EXTRA_INFO_FILE"
