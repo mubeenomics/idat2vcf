@@ -7,7 +7,7 @@ as a version-pinned first-party library, with its own MIT license.
 
 - Project: <https://github.com/mubeenomics/logshuru>
 - Version: **v2.0.0**
-- Tagged commit: `494e69ce4f3199ec04e6e6c29e283d06fd09713d`
+- Tagged commit: `f0c8ecd18ba0b3fdf8f0d174c0be50ed2a0c668c`
 - Script artifact: <https://github.com/mubeenomics/logshuru/releases/download/v2.0.0/logshuru.sh>
 - License source: <https://github.com/mubeenomics/logshuru/blob/v2.0.0/LICENSE>
 - License: MIT, reproduced in `LICENSE`.
