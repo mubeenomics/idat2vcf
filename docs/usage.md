@@ -131,28 +131,33 @@ different mapped user and can prevent writes to the mounted directories.
 
 For **rootful Docker**, add `--user "$(id -u):$(id -g)"` to keep host outputs
 owned by your account; otherwise the default command runs as root and writes
-root-owned files. Both output and log directories must be writable by the
-mapped user. The optional `--init` adds signal forwarding to its child and reaps
+root-owned files. With the hardened flags above, `--user` is **required** on
+rootful Docker: with all capabilities dropped, root can no longer write into a
+user-owned project directory and the run fails with permission denied. This
+follows from kernel permission rules and holds regardless of the flags; both
+output and log directories must be writable by the mapped user. The optional
+`--init` adds signal forwarding to its child and reaps
 orphaned processes; it does not control logging or start conversion. For an
 interactive shell, use `docker run --rm -it --entrypoint bash idat2vcf:local`.
-
-## Output permissions
-
-Because outputs hold human genotype data, the pipeline applies a default
-`umask` of `027`: the VCF, its index, `.extra.tsv`, and the run log are
-readable only by the owning user and the file's group (`0640`), not by other
-users. Under **rootful Docker** the files' group is the mapped user's group
-only if that group is meaningful on the host; use `--group-add` with a shared
-group, or widen access with `-e IDAT2VCF_UMASK=022`, so colleagues on shared
-storage can read the results. Any value valid for the `umask` builtin (three
-or four octal digits, such as `027` or `0022`) is accepted; anything else
-fails the run before any files are created.
 
 If input storage is separate from the project/output directory, an optional
 extra mount such as `-v "/absolute/input/path:/data/idat_files:ro"` exposes
 those inputs read-only. This nested mount may create an empty `idat_files/`
 mount-point directory in the output directory. It is not needed for the standard
 single-project layout.
+
+## Output permissions
+
+Because outputs hold human genotype data, the pipeline applies a default
+`umask` of `027`: the VCF, its index, `.extra.tsv`, and the run log are
+readable only by the owning user and the file's group (`0640`), not by other
+users. Under **rootful Docker** the files' group is the run's **primary** group
+only; `--group-add` adds a supplementary group, which new files do not use. To
+share results with a host group, run with
+`--user "$(id -u):<shared-gid>"`, make the project directory setgid with a
+shared group, or widen access with `-e IDAT2VCF_UMASK=022`. The `IDAT2VCF_UMASK`
+setting takes exactly three or four octal digits, such as `027` or `0022`;
+anything else fails the run before any files are created.
 
 ## Outputs
 

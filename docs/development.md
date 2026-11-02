@@ -7,7 +7,10 @@ Testing, CI, and validation status.
 ## Local checks
 
 ```bash
-bash -n idat2vcf.docker.sh tests/fixtures/bcftools tests/smoke_bcftools.sh lib/logshuru/logshuru.sh
+# bash -n parses only its first file argument, so check one file per call.
+for file in idat2vcf.docker.sh tests/fixtures/bcftools tests/smoke_bcftools.sh lib/logshuru/logshuru.sh; do
+    bash -n "$file"
+done
 shellcheck -x idat2vcf.docker.sh tests/fixtures/bcftools tests/smoke_bcftools.sh lib/logshuru/logshuru.sh
 cd lib/logshuru && sha256sum -c SHA256SUMS && cd -
 python3 -m unittest discover -s tests -v
