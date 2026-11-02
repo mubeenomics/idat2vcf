@@ -1,5 +1,9 @@
 # Resource provenance and preparation
 
+Provenance, exact versions, and bundle preparation for the embedded resources.
+
+[Usage](usage.md) · [Quick start](../README.md) · [Configuration](configuration.md)
+
 ## Exact supported bundle
 
 `idat2vcf.grch38.tar.gz` must contain these regular files directly at its root:

@@ -14,14 +14,20 @@ Defaults may be overridden using Docker `-e` options:
 | `LOG_DIR` | `/container_logs` | Persistent logs; created if missing |
 | `IDAT2VCF_RESOURCES_DIR` | `/idat2vcf_resources` | Exact resource set used at build time |
 | `HOST_LOG_DIR` | Best-effort auto-detection | Host directory of the log mount, shown in status lines; pass it explicitly for NAS or nested mounts |
-| `EXPECTED_VCF_RECORDS` | `653817` | Validated record count for the pinned bundle; a deviation logs a `WARNING` and a console `NOTE`, and, with `EXPECTED_VCF_RECORDS_STRICT` set, fails the run before publication with the dedicated status **65** (`EX_DATAERR`). Validated at startup as a non-negative integer |
 
 The documented commands pass `HOST_LOG_DIR` explicitly, which is reliable for
 every mount layout. The auto-detection reads the bind-mount source from
 `/proc/self/mountinfo` and shows the container path when the source cannot be
 resolved. Non-absolute `HOST_LOG_DIR` values are rejected before any files are
-created. Run logs are made group/other-readable (`0644`) so colleagues on
-shared storage can read them alongside the outputs they describe.
+created.
+
+## Record-count guard and output permissions
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `EXPECTED_VCF_RECORDS` | `653817` | Validated record count for the pinned bundle; a deviation logs a `WARNING` and a console `NOTE`. Validated at startup as a non-negative integer **without leading zeros** (`09` and `010` are rejected) |
+| `EXPECTED_VCF_RECORDS_STRICT` | unset | Any nonempty value — including `0` or `false` — turns strict mode on: a count mismatch fails the run before publication with the dedicated status **65** (`EX_DATAERR`), distinguishable from a crash. There is no value that explicitly turns it off; leave it unset instead |
+| `IDAT2VCF_UMASK` | `027` | File-creation mode mask for outputs and the run log; see [output permissions](usage.md#output-permissions). Three or four octal digits, such as `027` or `0022`; anything else fails the run before any files are created |
 
 ## Logging
 
@@ -31,7 +37,7 @@ No runtime download is required. Pipeline events include a millisecond timestamp
 severity, source file, function, and line number, for example:
 
 ```text
-2026-10-26 12:00:00.123 | PROCESS  | idat2vcf:run_conversion:327 - Starting IDAT to GTC conversion
+2026-10-26 12:00:00.123 | PROCESS  | idat2vcf:run_conversion:388 - Starting IDAT to GTC conversion
 ```
 
 Stage events use `PROCESS`, informational summaries use `INFO`, the working path

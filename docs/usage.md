@@ -35,6 +35,7 @@ log_directory="$PWD/logs/idat2vcf"
 mkdir -p "$log_directory"
 
 docker run --rm --init --platform linux/amd64 \
+  --network none --cap-drop ALL --security-opt no-new-privileges \
   -e HOST_LOG_DIR="$log_directory" \
   -v "$log_directory:/container_logs" \
   -v "$PWD:/data" \
@@ -63,6 +64,7 @@ begins.
 
 ```bash
 docker run --rm --init --platform linux/amd64 \
+  --network none --cap-drop ALL --security-opt no-new-privileges \
   -e HOST_LOG_DIR="$log_directory" \
   -v "$log_directory:/container_logs" \
   -v "$PWD:/data" \
@@ -75,7 +77,8 @@ followed by the final summary. It may also appear after the project code.
 ### Detached execution
 
 ```bash
-docker run -d --rm --init \
+docker run -d --rm --init --platform linux/amd64 \
+  --network none --cap-drop ALL --security-opt no-new-privileges \
   --name "idat2vcf-${project_code}" \
   -e HOST_LOG_DIR="$log_directory" \
   -v "$log_directory:/container_logs" \
@@ -104,9 +107,10 @@ never replaced (see [outputs](#outputs)).
 
 Ctrl+C (foreground) and `docker stop` terminate the conversion promptly. The
 pipeline kills its tool processes, retains the run's intermediate directory,
-releases the project lock, reports exit status 143, and records the interruption
-in the log. Remove a retained hidden `.PROJECT_CODE.idat2vcf.*` working directory
-manually once no run is active.
+releases the project lock, and records the interruption in the log. Ctrl+C
+reports exit status 130; `docker stop` (SIGTERM) reports 143. Remove a retained
+hidden `.PROJECT_CODE.idat2vcf.*` working directory manually once no run is
+active.
 
 ## Mounts, permissions, and storage
 
@@ -126,10 +130,23 @@ your host numeric UID with `--user` under rootless Docker: that selects a
 different mapped user and can prevent writes to the mounted directories.
 
 For **rootful Docker**, add `--user "$(id -u):$(id -g)"` to keep host outputs
-owned by your account. Both output and log directories must be writable by the
+owned by your account; otherwise the default command runs as root and writes
+root-owned files. Both output and log directories must be writable by the
 mapped user. The optional `--init` adds signal forwarding to its child and reaps
 orphaned processes; it does not control logging or start conversion. For an
 interactive shell, use `docker run --rm -it --entrypoint bash idat2vcf:local`.
+
+## Output permissions
+
+Because outputs hold human genotype data, the pipeline applies a default
+`umask` of `027`: the VCF, its index, `.extra.tsv`, and the run log are
+readable only by the owning user and the file's group (`0640`), not by other
+users. Under **rootful Docker** the files' group is the mapped user's group
+only if that group is meaningful on the host; use `--group-add` with a shared
+group, or widen access with `-e IDAT2VCF_UMASK=022`, so colleagues on shared
+storage can read the results. Any value valid for the `umask` builtin (three
+or four octal digits, such as `027` or `0022`) is accepted; anything else
+fails the run before any files are created.
 
 If input storage is separate from the project/output directory, an optional
 extra mount such as `-v "/absolute/input/path:/data/idat_files:ro"` exposes
@@ -146,8 +163,11 @@ single-project layout.
 
 Renaming IDATs with sample aliases changes the filename-derived VCF sample IDs,
 but does not remove embedded barcode/array-position metadata from the binary
-inputs. The `.extra.tsv` output can retain those identifiers and scanner
-metadata. Inputs and generated outputs/logs are excluded from Git.
+inputs. Treat `.extra.tsv` as sensitive: its 36 columns include `sample_name`,
+`sample_plate`, `sample_well`, `scanner_name`, `scanner_username`, `scan_date`,
+`sentrix_barcode`, and `computed_gender`. See
+[output permissions](#output-permissions) for who can read these files.
+Inputs and generated outputs/logs are excluded from Git.
 
 The script refuses to replace any existing output. It uses a per-project lock,
 a unique working directory under `/data`, and only the GTCs from that run.

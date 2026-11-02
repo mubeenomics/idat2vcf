@@ -7,7 +7,7 @@ Testing, CI, and validation status.
 ## Local checks
 
 ```bash
-bash -n idat2vcf.docker.sh
+bash -n idat2vcf.docker.sh tests/fixtures/bcftools tests/smoke_bcftools.sh lib/logshuru/logshuru.sh
 shellcheck -x idat2vcf.docker.sh tests/fixtures/bcftools tests/smoke_bcftools.sh lib/logshuru/logshuru.sh
 cd lib/logshuru && sha256sum -c SHA256SUMS && cd -
 python3 -m unittest discover -s tests -v

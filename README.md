@@ -26,7 +26,7 @@ Mohammed Mubeen Shaikh under [mubeenomics](https://github.com/mubeenomics).
 - The local resource bundle `idat2vcf.grch38.tar.gz` next to the Dockerfile —
   see [docs/resources.md](docs/resources.md) for acquisition, exact versions,
   and checksums. Not included in Git.
-- Space for the archive, approximately 3.8 GB of unpacked resources, the image,
+- Space for the archive, approximately 3.7 GB of unpacked resources, the image,
   and conversion intermediates.
 
 ## Build
@@ -63,11 +63,20 @@ log_directory="$PWD/logs/idat2vcf"
 mkdir -p "$log_directory"
 
 docker run --rm --init --platform linux/amd64 \
+  --network none --cap-drop ALL --security-opt no-new-privileges \
   -e HOST_LOG_DIR="$log_directory" \
   -v "$log_directory:/container_logs" \
   -v "$PWD:/data" \
   idat2vcf:local "$project_code"
 ```
+
+The flags after `--init` are deliberate: the conversion needs no network, and
+dropping capabilities and privilege escalation shrinks the container's access
+while it handles human genotype data. On **rootful Docker**, the default
+command also runs as root and writes root-owned files — add
+`--user "$(id -u):$(id -g)"` to keep host outputs owned by your account. See
+[docs/usage.md](docs/usage.md) for the full mount, user, and output-permission
+notes.
 
 The foreground command waits, writes all pipeline events and tool output to the
 per-project log, and prints one final status line:
