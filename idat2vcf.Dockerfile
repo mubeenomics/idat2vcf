@@ -8,23 +8,25 @@
 # reference genome. Keep it private; do not push it to a public registry.
 
 # Use Miniforge (conda-forge) as the pinned base image (Ubuntu 24.04 "Noble",
-# conda 26.9.4 / mamba 2.9.0 at the time of validation).
-FROM condaforge/miniforge3:26.9.4-0
+# conda 26.9.4 / mamba 2.9.0 at the time of validation). The digest pins the
+# exact linux/amd64 bits the validated image was built from; tags can be moved,
+# so the tag is kept only for readability.
+FROM condaforge/miniforge3:26.9.4-0@sha256:86c607f0545c08e50d5dfd9d1ea144fb948951ee95f224b95d3f7c138ed6209d
 
 # Add metadata labels.
-LABEL author="Mubeen" \
+LABEL author="Mohammed Mubeen Shaikh" \
       description="Convert Infinium GSA v3.0 IDAT files to indexed GRCh38 VCF" \
-      version="1.0.2" \
+      version="1.0.3" \
       org.opencontainers.image.title="idat2vcf" \
       org.opencontainers.image.description="Convert Infinium GSA v3.0 IDAT files to an indexed GRCh38 VCF using the bcftools idat2gtc/gtc2vcf plugins" \
-      org.opencontainers.image.version="1.0.2" \
+      org.opencontainers.image.version="1.0.3" \
       org.opencontainers.image.source="https://github.com/mubeenomics/idat2vcf" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.authors="Mohammed Mubeen Shaikh"
 
 # Check the supported architecture, install the matching bcftools version using
 # strict conda-forge/bioconda priority, and clean package caches in the same layer.
-# htslib is pinned to the exact runtime version used by the v1.0 validation, so
+# htslib is pinned to the exact runtime version used by the v1.0.2 validation, so
 # dependency resolution cannot silently change the tested pairing.
 RUN test "$(uname -m)" = x86_64 && \
     mamba install -n base --override-channels -c conda-forge -c bioconda \

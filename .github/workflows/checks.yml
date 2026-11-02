@@ -9,15 +9,20 @@ permissions:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Check out the repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Bash syntax check
         run: |
           bash -n idat2vcf.docker.sh
           bash -n tests/fixtures/bcftools
+          bash -n tests/smoke_bcftools.sh
+          bash -n lib/logshuru/logshuru.sh
 
       - name: ShellCheck (with sourced-library analysis)
         run: |
@@ -33,10 +38,13 @@ jobs:
           python3 -m unittest discover -s tests -v
 
   smoke-bcftools:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Check out the repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Install bcftools
         run: |
