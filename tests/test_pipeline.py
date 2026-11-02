@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import signal
 import stat
 import subprocess
 import tempfile
@@ -232,6 +233,50 @@ class PipelineTests(unittest.TestCase):
         self.assertFalse((self.data / "PROJECT.vcf.gz").exists())
         self.assertEqual(len(list(self.data.glob(".PROJECT.idat2vcf.*"))), 1)
 
+    def test_verbose_termination_prompts_cleanup_and_kills_pipeline(self):
+        self.env["MOCK_STAGE_SLEEP"] = "8"
+        process = subprocess.Popen(
+            ["bash", str(ROOT / "idat2vcf.docker.sh"), "--verbose", "PROJECT"],
+            env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        time.sleep(1.5)
+        # docker stop/SIGTERM must also be safe during a verbose run: cleanup
+        # runs with the tee capture still alive, prints FAILED, and unlocks.
+        sent = time.monotonic()
+        process.terminate()
+        out, err = process.communicate(timeout=30)
+        elapsed = time.monotonic() - sent
+        self.assertLess(elapsed, 6, "Termination did not interrupt the pipeline promptly")
+        self.assertEqual(process.returncode, 143, out + err)
+        self.assertTrue(err.startswith("FAILED: PROJECT (exit 143). Log: "), err)
+        self.assertIn("| PROCESS", out)  # verbose output streamed before the kill
+        self.assertIn("Intermediates retained:", out)
+        text = next(self.logs.glob("*.log")).read_text()
+        self.assertIn("| WARNING", text)
+        self.assertIn("Terminated", text)
+        self.assertIn("Intermediates retained:", text)
+        self.assert_unlocked()
+        self.assertFalse((self.data / "PROJECT.vcf.gz").exists())
+        self.assertEqual(len(list(self.data.glob(".PROJECT.idat2vcf.*"))), 1)
+
+    def test_sigint_exits_130_with_cleanup(self):
+        self.env["MOCK_STAGE_SLEEP"] = "8"
+        process = subprocess.Popen(
+            ["bash", str(ROOT / "idat2vcf.docker.sh"), "PROJECT"],
+            env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        time.sleep(1.5)
+        sent = time.monotonic()
+        process.send_signal(signal.SIGINT)
+        out, err = process.communicate(timeout=30)
+        elapsed = time.monotonic() - sent
+        self.assertLess(elapsed, 6, "Interrupt did not stop the pipeline promptly")
+        self.assertEqual(process.returncode, 130, out + err)
+        self.assertTrue(err.startswith("FAILED: PROJECT (exit 130). Log: "), err)
+        self.assert_unlocked()
+        text = next(self.logs.glob("*.log")).read_text()
+        self.assertIn("Interrupted", text)
+
     def install_failing_tee(self):
         tee = self.root / "bin/tee"
         tee.write_text(f'#!/usr/bin/env bash\n{self.host_tee} "$@"\nexit 7\n')
@@ -429,6 +474,17 @@ class PipelineTests(unittest.TestCase):
         # Rejected before any work: no log directory is created.
         self.assertFalse(self.logs.exists())
 
+    def test_leading_zero_record_counts_rejected_at_startup(self):
+        # "09" would be an invalid octal and "010" the octal value 8 in the
+        # arithmetic record-count comparison, so both are rejected up front.
+        for value in ("09", "010"):
+            with self.subTest(value=value):
+                self.env["EXPECTED_VCF_RECORDS"] = value
+                result = self.run_pipeline("PROJECT")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("without leading zeros", result.stderr)
+                self.assertFalse(self.logs.exists())
+
     def test_nested_idat_files_fail_preflight_like_the_plugin(self):
         nested = self.inputs / "sub"
         nested.mkdir()
@@ -443,11 +499,49 @@ class PipelineTests(unittest.TestCase):
         )
         self.assert_unlocked()
 
-    def test_run_log_is_group_and_other_readable(self):
+    def test_run_log_and_outputs_match_default_umask(self):
         result = self.run_pipeline("PROJECT")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        mode = stat.S_IMODE(next(self.logs.glob("*.log")).stat().st_mode)
-        self.assertEqual(mode, 0o644)
+        # The default umask 027 keeps group access for colleagues and closes
+        # access to other users, because outputs hold human genotype data.
+        for path in (
+            next(self.logs.glob("*.log")),
+            self.data / "PROJECT.vcf.gz",
+            self.data / "PROJECT.vcf.gz.csi",
+            self.data / "PROJECT.extra.tsv",
+        ):
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o640, path.name)
+
+    def test_idat2vcf_umask_override_widens_or_narrows_outputs(self):
+        latest_log = lambda: max(
+            self.logs.glob("*.log"), key=lambda p: p.stat().st_mtime
+        )
+        for override, expected in (("022", 0o644), ("0022", 0o644), ("077", 0o600)):
+            with self.subTest(override=override):
+                for path in self.data.glob("PROJECT.*"):
+                    path.unlink()
+                self.env["IDAT2VCF_UMASK"] = override
+                result = self.run_pipeline("PROJECT")
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                for path in (
+                    latest_log(),
+                    self.data / "PROJECT.vcf.gz",
+                    self.data / "PROJECT.vcf.gz.csi",
+                    self.data / "PROJECT.extra.tsv",
+                ):
+                    self.assertEqual(
+                        stat.S_IMODE(path.stat().st_mode), expected, path.name
+                    )
+
+    def test_invalid_idat2vcf_umask_rejected_at_startup(self):
+        for value in ("abc", "8", "0x", "12", "-27"):
+            with self.subTest(value=value):
+                self.env["IDAT2VCF_UMASK"] = value
+                result = self.run_pipeline("PROJECT")
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn("must be an octal mode", result.stderr)
+                # Rejected before any work: no log directory is created.
+                self.assertFalse(self.logs.exists())
 
 
 if __name__ == "__main__":

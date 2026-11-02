@@ -91,11 +91,24 @@ fi
 # Validate the record-count guard inputs before any work is done, so a typo
 # does not waste a full conversion run.
 EXPECTED_RECORDS_COUNT=${EXPECTED_VCF_RECORDS:-653817}
-if [[ ! $EXPECTED_RECORDS_COUNT =~ ^[0-9]+$ ]]; then
-    printf 'FAILED: %s. EXPECTED_VCF_RECORDS must be a non-negative integer: %s\n' \
+# Require canonical decimal form: leading zeros would be reinterpreted as octal
+# in the arithmetic comparison below.
+if [[ ! $EXPECTED_RECORDS_COUNT =~ ^(0|[1-9][0-9]*)$ ]]; then
+    printf 'FAILED: %s. EXPECTED_VCF_RECORDS must be a non-negative integer without leading zeros: %s\n' \
         "$PROJECT_CODE" "$EXPECTED_RECORDS_COUNT" >&2
     exit 1
 fi
+
+# Output files hold human genotype data and run logs may name sample aliases,
+# so default to closing them to users outside the run's group. Callers may
+# widen or narrow this with IDAT2VCF_UMASK.
+IDAT2VCF_UMASK_VALUE=${IDAT2VCF_UMASK:-027}
+if [[ ! $IDAT2VCF_UMASK_VALUE =~ ^[0-7]{3,4}$ ]]; then
+    printf 'FAILED: %s. IDAT2VCF_UMASK must be an octal mode such as 027 or 0022: %s\n' \
+        "$PROJECT_CODE" "$IDAT2VCF_UMASK_VALUE" >&2
+    exit 1
+fi
+umask "$IDAT2VCF_UMASK_VALUE"
 
 # Create the directory before the first message and use a unique log per run.
 if ! mkdir -p -- "$LOG_DIR"; then
@@ -106,9 +119,11 @@ if ! LOG_FILE=$(mktemp "${LOG_DIR}/${PROJECT_CODE}_$(date -u +%Y%m%dT%H%M%SZ)_XX
     printf 'FAILED: %s. Cannot create a run log in: %s\n' "$PROJECT_CODE" "$LOG_DIR" >&2
     exit 1
 fi
-# mktemp creates owner-only files; make the run log group/other-readable so
-# colleagues on shared storage can read it alongside the outputs it describes.
-chmod 644 -- "$LOG_FILE" || :
+# mktemp creates owner-only files; widen the run log exactly as normal file
+# creation would under the run's umask, so it stays readable to the same
+# audience as the outputs it describes.
+printf -v log_file_mode '%03o' $(( 8#666 & ~8#$IDAT2VCF_UMASK_VALUE ))
+chmod "$log_file_mode" -- "$LOG_FILE" || :
 
 # Show the host system log path in messages. An explicit HOST_LOG_DIR is the
 # reliable override and the documented setting; otherwise this is a best-effort
@@ -250,10 +265,20 @@ list_child_pids() {
     done
 }
 
+# Report whether a process still runs and can hold resources open. A zombie is
+# already dead for this purpose and no longer holds the capture pipe.
+is_live_process() {
+    local stat_line state
+    stat_line=$(cat "/proc/$1/stat" 2>/dev/null) || return 1
+    # The comm field can contain spaces, so parse after the last ')'.
+    state=${stat_line##*) }
+    [[ $state != Z* ]]
+}
+
 # Terminate a process and all of its descendants, children first, so pipeline
 # grandchildren stop before their parents exit.
 terminate_tree() {
-    local pid=$1 grandchild
+    local pid=$1 grandchild waited
     local -a grandchildren=()
     mapfile -t grandchildren < <(list_child_pids "$pid")
     for grandchild in "${grandchildren[@]}"; do
@@ -261,6 +286,13 @@ terminate_tree() {
         terminate_tree "$grandchild"
     done
     kill -TERM "$pid" 2>/dev/null || :
+    # Give SIGTERM a short window, then escalate to KILL so a tool that ignores
+    # it cannot keep the capture pipe open and stall the EXIT handler's wait.
+    for (( waited = 0; waited < 10; waited++ )); do
+        is_live_process "$pid" || return 0
+        sleep 0.1
+    done
+    kill -KILL "$pid" 2>/dev/null || :
 }
 
 # Terminate the conversion pipeline on INT/TERM, then let the EXIT handler
@@ -272,9 +304,10 @@ terminate_run() {
     if [[ -n $CONVERSION_PID ]]; then
         terminate_tree "$CONVERSION_PID"
     fi
-    if [[ -n $LOG_CAPTURE_PID ]]; then
-        kill -TERM "$LOG_CAPTURE_PID" 2>/dev/null || :
-    fi
+    # Do not kill the tee capture here: the EXIT handler's cleanup closes the
+    # pipe writers after the tool processes are gone, lets tee drain, and waits
+    # for it. Killing tee first would make the later "Run failed" log write hit
+    # a dead pipe and kill this shell by SIGPIPE mid-cleanup.
     exit "$signal_status"
 }
 trap 'terminate_run 130 "Interrupted"' INT
