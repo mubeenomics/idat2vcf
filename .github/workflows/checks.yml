@@ -1,0 +1,60 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Bash syntax check
+        run: |
+          bash -n idat2vcf.docker.sh
+          bash -n scripts/fetch-sample-data.sh
+          bash -n tests/fixtures/bcftools
+          bash -n tests/smoke_bcftools.sh
+          bash -n lib/logshuru/logshuru.sh
+
+      - name: ShellCheck (with sourced-library analysis)
+        run: |
+          shellcheck -x idat2vcf.docker.sh scripts/fetch-sample-data.sh tests/fixtures/bcftools tests/smoke_bcftools.sh lib/logshuru/logshuru.sh
+
+      - name: Verify bundled logshuru release checksums
+        run: |
+          cd lib/logshuru
+          sha256sum -c SHA256SUMS
+
+      - name: Standard-library unit tests
+        run: |
+          python3 -m unittest discover -s tests -v
+
+  smoke-bcftools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install bcftools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bcftools
+
+      - name: Real-bcftools sort|norm|index flag smoke test
+        run: |
+          tests/smoke_bcftools.sh
+
+# The Docker build and public-sample conversion require the local resource archive
+# (idat2vcf.grch38.tar.gz) and are documented integration checks, not CI checks.

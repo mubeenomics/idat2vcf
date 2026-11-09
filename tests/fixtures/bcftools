@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Test double: validates orchestration only, never genomic correctness.
+set -euo pipefail
+command=$1
+shift
+if [[ $command == plugin ]]; then
+    printf 'idat2gtc\ngtc2vcf\n'
+    exit 0
+fi
+if [[ $command == --version ]]; then
+    printf 'bcftools test double\n'
+    exit 0
+fi
+if [[ $command == --version-only ]]; then
+    printf '1.0-test\n'
+    exit 0
+fi
+if [[ ${MOCK_FAIL:-} == "$command" ]]; then
+    printf 'Injected failure: %s\n' "$command" >&2
+    # Let tests fail the logger only after the tool's original error has occurred.
+    if [[ -n ${MOCK_LOG_FAILURE_FLAG:-} ]]; then
+        : > "$MOCK_LOG_FAILURE_FLAG"
+    fi
+    exit 42
+fi
+case "$command" in
+    +idat2gtc)
+        printf 'fake idat2gtc progress\n'
+        # Let interruption tests hold the stage open like a real conversion.
+        if [[ -n ${MOCK_STAGE_SLEEP:-} ]]; then
+            sleep "$MOCK_STAGE_SLEEP"
+        fi
+        while [[ $# -gt 0 ]]; do
+            if [[ $1 == --output ]]; then
+                printf 'fake gtc\n' > "$2/sample.gtc"
+                break
+            fi
+            shift
+        done
+        ;;
+    +gtc2vcf)
+        while [[ $# -gt 0 ]]; do
+            if [[ $1 == --extra ]]; then
+                printf 'sample\n' > "$2"
+                break
+            fi
+            shift
+        done
+        printf 'fake bcf\n'
+        ;;
+    sort) cat ;;
+    norm)
+        cat >/dev/null
+        while [[ $# -gt 0 ]]; do
+            if [[ $1 == -o ]]; then
+                printf 'fake vcf\n' > "$2"
+                printf 'fake index\n' > "$2.csi"
+                break
+            fi
+            shift
+        done
+        ;;
+    view) : ;;
+    index) printf '1\n' ;;
+    *) exit 2 ;;
+esac
