@@ -1,0 +1,9 @@
+**
+!idat2vcf.Dockerfile
+!idat2vcf.docker.sh
+!idat2vcf.grch38.tar.gz
+!resources.sha256
+!THIRD_PARTY_NOTICES.md
+!lib/
+!lib/logshuru/
+!lib/logshuru/**
