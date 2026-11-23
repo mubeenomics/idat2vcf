@@ -1,12 +1,12 @@
-# IDAT to VCF
+# idat2vcf
+
+[![CI](https://github.com/mubeenomics/idat2vcf/actions/workflows/ci.yml/badge.svg)](https://github.com/mubeenomics/idat2vcf/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mubeenomics/idat2vcf)](https://github.com/mubeenomics/idat2vcf/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Docker-based conversion of Illumina Infinium Global Screening Array v3.0 IDAT
 intensity files into a jointly generated, sorted, normalized, compressed, and
 indexed GRCh38 VCF using the `idat2gtc` and `gtc2vcf` bcftools plugins.
-
-idat2vcf and its logging library
-[logshuru](https://github.com/mubeenomics/logshuru) are first-party projects by
-Mohammed Mubeen Shaikh under [mubeenomics](https://github.com/mubeenomics).
 
 ## Features
 
@@ -23,8 +23,8 @@ Mohammed Mubeen Shaikh under [mubeenomics](https://github.com/mubeenomics).
 ## Requirements
 
 - Docker with BuildKit on `linux/amd64`.
-- The local resource bundle `idat2vcf.grch38.tar.gz` next to the Dockerfile —
-  see [docs/resources.md](docs/resources.md) for acquisition, exact versions,
+- The local resource bundle `idat2vcf.grch38.tar.gz` next to the Dockerfile.
+  See [docs/resources.md](docs/resources.md) for acquisition, exact versions,
   and checksums. Not included in Git.
 - Space for the archive, approximately 3.7 GB of unpacked resources, the image,
   and conversion intermediates.
@@ -92,14 +92,14 @@ run live; use `-d` for detached execution with `docker logs -f` monitoring
 
 ### Try it with public sample data
 
-No IDATs of your own yet? `scripts/fetch-sample-data.sh` downloads one public
+No IDATs of your own yet? `scripts/fetch_sample_data.sh` downloads one public
 IDAT pair from NCBI GEO (GSE272121, about 10 MB) into a ready-made project
 directory. Run the command above from that directory. See
 [docs/usage.md](docs/usage.md#public-sample-data) for the source and expected
 result.
 
 ```bash
-scripts/fetch-sample-data.sh ~/idat2vcf-sample && cd ~/idat2vcf-sample
+scripts/fetch_sample_data.sh ~/idat2vcf-sample && cd ~/idat2vcf-sample
 ```
 
 ### Input requirements
@@ -113,7 +113,7 @@ output set; existing outputs are never replaced.
 All paths are relative to the project directory.
 
 | File | Description |
-|---|---|
+| --- | --- |
 | `PROJECT_CODE.vcf.gz` | Sorted, normalized, compressed VCF |
 | `PROJECT_CODE.vcf.gz.csi` | CSI index |
 | `PROJECT_CODE.extra.tsv` | Per-sample GTC metadata |
@@ -121,13 +121,37 @@ All paths are relative to the project directory.
 
 ## Documentation
 
-| Document | Contents |
-|---|---|
-| [docs/usage.md](docs/usage.md) | Invocation modes, stopping a run, mounts and permissions, outputs, conversion behavior |
-| [docs/configuration.md](docs/configuration.md) | Environment variables and the logging reference |
-| [docs/resources.md](docs/resources.md) | Reference/manifest/plugin provenance and bundle preparation |
-| [docs/troubleshooting.md](docs/troubleshooting.md) | Common failures and remedies |
-| [docs/development.md](docs/development.md) | Development checks, tests, CI, and validation status |
+- [Usage](docs/usage.md): invocation modes, stopping a run, mounts and permissions, outputs, conversion behavior.
+- [Configuration](docs/configuration.md): environment variables and the logging reference.
+- [Resources](docs/resources.md): reference/manifest/plugin provenance and bundle preparation.
+- [Troubleshooting](docs/troubleshooting.md): common failures and remedies.
+- [Contributing](CONTRIBUTING.md): development checks, tests, CI, and validation status.
+
+## Support
+
+Check [docs/troubleshooting.md](docs/troubleshooting.md) first. To report a bug
+or ask a question, open an issue at
+[github.com/mubeenomics/idat2vcf/issues](https://github.com/mubeenomics/idat2vcf/issues)
+and include the relevant run log from `logs/idat2vcf/`.
+
+> **Note:** never attach IDAT, GTC, or VCF files derived from real individuals to
+> an issue. Reproduce the problem with the
+> [public sample data](#try-it-with-public-sample-data) where possible.
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a pull request, run the
+local checks in [CONTRIBUTING.md](CONTRIBUTING.md) (Bash syntax,
+ShellCheck, checksums, unit tests, and the bcftools smoke test); CI runs the
+same checks on every push and pull request.
+
+## Acknowledgments
+
+- [gtc2vcf](https://github.com/freeseek/gtc2vcf) (`idat2gtc` and `gtc2vcf`
+  plugins) by Giulio Genovese. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- [bcftools and HTSlib](https://www.htslib.org/) for VCF processing.
+- Illumina for the Infinium Global Screening Array v3.0 manifests and cluster file.
+- [logshuru](https://github.com/mubeenomics/logshuru) for pipeline logging.
 
 ## License
 

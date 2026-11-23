@@ -4,7 +4,7 @@
 # ==============================================================================
 # Description: Downloads one public Illumina IDAT pair from NCBI GEO, verifies
 #              pinned SHA-256 checksums, and lays it out as an idat2vcf project.
-# Usage: scripts/fetch-sample-data.sh [PROJECT_DIR]   (default: ./idat2vcf-sample)
+# Usage: scripts/fetch_sample_data.sh [PROJECT_DIR]   (default: ./idat2vcf-sample)
 # Source: GEO series GSE272121, sample GSM8393537 ("NHA, vial 1"): normal human
 #         astrocytes, a commercial primary cell line. The chip carries every
 #         Infinium GSA v3.0 bead address, so the GSA v3.0 bundle converts it.

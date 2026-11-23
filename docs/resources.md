@@ -9,7 +9,7 @@ Provenance, exact versions, and bundle preparation for the embedded resources.
 `idat2vcf.grch38.tar.gz` must contain these regular files directly at its root:
 
 | File | Unpacked bytes | Source |
-|---|---:|---|
+| --- | ---: | --- |
 | `GCA_000001405.15_GRCh38_no_alt_analysis_set.fna` | 3144230986 | NCBI GRCh38 no-alt |
 | `GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.fai` | 7804 | Matching FASTA index |
 | `GSA-24v3-0_A1_ClusterFile.egt` | 113375118 | Illumina GSA v3.0 |

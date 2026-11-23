@@ -9,7 +9,7 @@ Environment settings and logging details.
 Defaults may be overridden using Docker `-e` options:
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `DATA_DIR` | `/data` | Contains `idat_files/`, outputs, and run intermediates |
 | `LOG_DIR` | `/container_logs` | Persistent logs; created if missing |
 | `IDAT2VCF_RESOURCES_DIR` | `/idat2vcf_resources` | Exact resource set used at build time |
@@ -24,9 +24,9 @@ created.
 ## Record-count guard and output permissions
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `EXPECTED_VCF_RECORDS` | `653817` | Validated record count for the pinned bundle; a deviation logs a `WARNING` and a console `NOTE`. Validated at startup as a non-negative integer **without leading zeros** (`09` and `010` are rejected) |
-| `EXPECTED_VCF_RECORDS_STRICT` | unset | Any nonempty value — including `0` or `false` — turns strict mode on: a count mismatch fails the run before publication with the dedicated status **65** (`EX_DATAERR`), distinguishable from a crash. There is no value that explicitly turns it off; leave it unset instead |
+| `EXPECTED_VCF_RECORDS_STRICT` | unset | Any nonempty value, including `0` or `false`, turns strict mode on: a count mismatch fails the run before publication with the dedicated status **65** (`EX_DATAERR`), distinguishable from a crash. There is no value that explicitly turns it off; leave it unset instead |
 | `IDAT2VCF_UMASK` | `027` | File-creation mode mask for outputs and the run log; see [output permissions](usage.md#output-permissions). Three or four octal digits, such as `027` or `0022`; anything else fails the run before any files are created |
 
 ## Logging
@@ -51,7 +51,7 @@ final summary line, avoiding duplicate completion messages.
 ### Logger settings
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `LOG_LEVEL` | `PROCESS` | Minimum event severity; use `DEBUG` for additional details |
 | `LOGSHURU_TZ` | `UTC` | Event timestamp timezone |
 | `LOGSHURU_TIMESTAMP_FORMAT` | `%F %T.%3N` | GNU date timestamp format |

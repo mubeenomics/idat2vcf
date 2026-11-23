@@ -25,7 +25,7 @@ project_folder/
 To try the pipeline without your own data, fetch one public IDAT pair:
 
 ```bash
-scripts/fetch-sample-data.sh ~/idat2vcf-sample   # default: ./idat2vcf-sample
+scripts/fetch_sample_data.sh ~/idat2vcf-sample   # default: ./idat2vcf-sample
 cd ~/idat2vcf-sample
 ```
 
@@ -36,7 +36,7 @@ It never replaces existing files. Then run the commands below from that
 directory.
 
 | Property | Value |
-|---|---|
+| --- | --- |
 | Source | GEO series [GSE272121](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE272121), sample [GSM8393537](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8393537) ("NHA, vial 1") |
 | Material | Normal human astrocytes, a commercial primary cell line (not a patient sample) |
 | Array | GSA v3.0-based BeadChip whose IDATs carry every GSA v3.0 bead address; the GSA v3.0 A2 bundle converts it |
@@ -191,7 +191,7 @@ anything else fails the run before any files are created.
 
 - `$PWD/PROJECT_CODE.vcf.gz`
 - `$PWD/PROJECT_CODE.vcf.gz.csi`
-- `$PWD/PROJECT_CODE.extra.tsv` — per-sample GTC metadata
+- `$PWD/PROJECT_CODE.extra.tsv`: per-sample GTC metadata
 - `$PWD/logs/idat2vcf/PROJECT_CODE_<UTC timestamp>_<unique suffix>.log`
 
 Renaming IDATs with sample aliases changes the filename-derived VCF sample IDs,

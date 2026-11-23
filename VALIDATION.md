@@ -3,7 +3,7 @@
 Validated locally on 2026-11-09 with public sample data that anyone can
 download and rerun.
 
-[Development checks](docs/development.md) · [Quick start](README.md)
+[Contributing](CONTRIBUTING.md) · [Quick start](README.md)
 
 ## Validated image
 
@@ -48,7 +48,7 @@ guaranteed to be bit-identical (see [docs/resources.md](docs/resources.md)).
   locally it also passed inside the validated image.
 - The bundled logshuru release script and license match the recorded v2.0.0
   checksums; verified locally and at image build time.
-- [CI](.github/workflows/checks.yml) runs all of these on every push and pull
+- [CI](.github/workflows/ci.yml) runs all of these on every push and pull
   request, with a read-only `permissions` block and a SHA-pinned checkout.
 
 ## Docker integration checks
@@ -59,7 +59,7 @@ guaranteed to be bit-identical (see [docs/resources.md](docs/resources.md)).
 
 ## Public sample integration (GSE272121)
 
-The public IDAT pair fetched by `scripts/fetch-sample-data.sh` (GEO
+The public IDAT pair fetched by `scripts/fetch_sample_data.sh` (GEO
 [GSM8393537](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM8393537),
 normal human astrocytes; see [docs/usage.md](docs/usage.md#public-sample-data))
 was converted with the documented hardened command (`--network none --cap-drop
