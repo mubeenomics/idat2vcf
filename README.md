@@ -13,7 +13,7 @@ indexed GRCh38 VCF using the `idat2gtc` and `gtc2vcf` bcftools plugins.
 - One command per project: quiet final status by default, `--verbose` for live
   logs, `-d` for detached runs with `docker logs` monitoring.
 - Persistent **per-project logs** in `logs/idat2vcf/` combining severity-based
-  events with the complete raw bcftools diagnostics (bundled logshuru v2.0.0).
+  events with the complete raw bcftools diagnostics (bundled logshuru v2.1.0).
 - Resources verified against checksums at image build time; bcftools 1.20 with
   pinned gtc2vcf 1.20-20240927 plugins.
 - Run isolation with per-project locks, output protection, staged publication,

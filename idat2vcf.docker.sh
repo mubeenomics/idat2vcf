@@ -7,7 +7,7 @@
 # Usage: ./idat2vcf.docker.sh [--verbose] <PROJECT_CODE>
 #        docker run [mount options] idat2vcf:local [--verbose] <PROJECT_CODE>
 # Requirements: bcftools + plugins, matching BPM/CSV/EGT files, FASTA + .fai index.
-#               Bundled first-party logshuru v2.0.0 supplies event logging.
+#               Bundled first-party logshuru v2.1.0 supplies event logging.
 #               The Docker build installs and verifies these resources once.
 # Inputs:  ${DATA_DIR:-/data}/idat_files (paired *_Grn.idat and *_Red.idat files).
 # Outputs: <PROJECT_CODE>.vcf.gz, .vcf.gz.csi, and .extra.tsv in DATA_DIR;

@@ -46,8 +46,11 @@ guaranteed to be bit-identical (see [docs/resources.md](docs/resources.md)).
   `sort | norm -c x | --write-index` stage on a tiny reference and VCF. In CI it
   runs with the runner's distribution bcftools, not the pinned 1.20 build;
   locally it also passed inside the validated image.
-- The bundled logshuru release script and license match the recorded v2.0.0
-  checksums; verified locally and at image build time.
+- The bundled logshuru release script and license match the recorded checksums.
+  The validated image above was built with logshuru v2.0.0, verified locally and
+  at image build time. The bundle is now logshuru v2.1.0 (macOS support only; no
+  Linux behavior change), verified locally and in CI; the image has not been
+  rebuilt with it yet.
 - [CI](.github/workflows/ci.yml) runs all of these on every push and pull
   request, with a read-only `permissions` block and a SHA-pinned checkout.
 

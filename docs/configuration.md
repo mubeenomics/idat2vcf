@@ -32,7 +32,7 @@ created.
 ## Logging
 
 The pipeline sources a pinned, checksum-verified copy of
-[logshuru v2.0.0](https://github.com/mubeenomics/logshuru/releases/tag/v2.0.0).
+[logshuru v2.1.0](https://github.com/mubeenomics/logshuru/releases/tag/v2.1.0).
 No runtime download is required. Pipeline events include a millisecond timestamp,
 severity, source file, function, and line number, for example:
 

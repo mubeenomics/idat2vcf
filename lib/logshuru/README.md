@@ -6,10 +6,10 @@ Shaikh under [mubeenomics](https://github.com/mubeenomics). logshuru is bundled 
 as a version-pinned first-party library, with its own MIT license.
 
 - Project: <https://github.com/mubeenomics/logshuru>
-- Version: **v2.0.0**
-- Tagged commit: `f0c8ecd18ba0b3fdf8f0d174c0be50ed2a0c668c`
-- Script artifact: <https://github.com/mubeenomics/logshuru/releases/download/v2.0.0/logshuru.sh>
-- License source: <https://github.com/mubeenomics/logshuru/blob/v2.0.0/LICENSE>
+- Version: **v2.1.0**
+- Tagged commit: `8c09f2a3192d56d276f764406e7780cd88d768e5`
+- Script artifact: <https://github.com/mubeenomics/logshuru/releases/download/v2.1.0/logshuru.sh>
+- License source: <https://github.com/mubeenomics/logshuru/blob/v2.1.0/LICENSE>
 - License: MIT, reproduced in `LICENSE`.
 
 `logshuru.sh` is an unmodified logshuru release artifact. Checksums for the script
